@@ -25,20 +25,20 @@ Diffusion model inference is computationally expensive. Many **training-free** a
 
 | Method | Description | Docs |
 |--------|-------------|------|
-| **AdaptiveDiff** | Adaptive step-skipping based on output similarity | [📄 Details](docs/adaptivediff.md) |
-| **EasyCache** | Cached residual reuse with error threshold | [📄 Details](docs/easycache.md) |
-| **SADA** | Momentum-based adaptive skip + Lagrange interpolation (sampler+model) | [📄 Details](docs/sada.md) |
-| **ZEUS** | Fixed-pattern modular skip + PSI/Lagrange interpolation | [📄 Details](docs/zeus.md) |
+| **AdaptiveDiff** | Third-order latent difference guided adaptive step-skipping | [📄 Details](docs/adaptivediff.md) |
+| **EasyCache** | Lightweight runtime-adaptive caching to reuse transformation vectors | [📄 Details](docs/easycache.md) |
+| **SADA** | Stability-guided adaptive acceleration with Lagrange interpolation | [📄 Details](docs/sada.md) |
+| **ZEUS** | Second-order predictor with interleaved skipping scheme | [📄 Details](docs/zeus.md) |
 
 #### Model-level (feature caching / layer skipping)
 
 | Method | Description | Docs |
 |--------|-------------|------|
-| **TeaCache** | Timestep-embedding-aware transformer output caching | [📄 Details](docs/teacache.md) |
-| **MagCache** | Magnitude-based adaptive layer caching | [📄 Details](docs/magcache.md) |
-| **TaylorSeer** | Taylor-expansion prediction of transformer outputs | [📄 Details](docs/taylorseer.md) |
-| **HiCache** | Hierarchical caching with multi-order prediction | [📄 Details](docs/hicache.md) |
-| **SeaCache** | Similarity-based exponential adaptive caching | [📄 Details](docs/seacache.md) |
+| **TeaCache** | Timestep-embedding-aware input modulation for output caching | [📄 Details](docs/teacache.md) |
+| **MagCache** | Magnitude-law-based adaptive timestep skipping with single-sample calibration | [📄 Details](docs/magcache.md) |
+| **TaylorSeer** | Taylor series expansion for predicting future timestep features | [📄 Details](docs/taylorseer.md) |
+| **HiCache** | Hermite polynomial-based feature cache with dual-scaling mechanism | [📄 Details](docs/hicache.md) |
+| **SeaCache** | Spectral-evolution-aware cache with SEA filter for dynamic scheduling | [📄 Details](docs/seacache.md) |
 
 ---
 
@@ -95,31 +95,33 @@ The node is located at: **AccelDiff** → `AccelDiff Unified`
 
 ### How It Works
 
-1. **Select an acceleration method** from the dropdown.
+1. **Select acceleration methods** from the `sampler_method` and `model_method` dropdowns (can be used independently or together).
 2. The node UI **dynamically updates** to show only the relevant parameters and I/O slots:
    - **Sampler-type methods** (AdaptiveDiff, EasyCache, SADA, ZEUS): Output a `SAMPLER` — connect it to your KSampler node's sampler input.
    - **Model-type methods** (TeaCache, MagCache, TaylorSeer, HiCache, SeaCache): Accept a `MODEL` input and output an accelerated `MODEL` — insert it between your model loader and KSampler.
-   - **SADA** requires both sampler + model to work together (outputs both).
+   - When set to "None", the corresponding output slot is hidden automatically.
+   - Both methods can be enabled simultaneously for combined acceleration.
 3. **Configure parameters** according to your quality/speed trade-off preferences.
 
 ### Workflow Examples
 
-#### Sampler-type (AdaptiveDiff / EasyCache / ZEUS)
+#### Sampler-only (AdaptiveDiff / EasyCache / ZEUS)
 
 ```
-[Model Loader] → [KSampler (sampler ← AccelDiff Unified)]
+[AccelDiff Unified (sampler_method=XXX)] --sampler--> [KSampler]
 ```
 
-#### Model-type (TeaCache / MagCache / TaylorSeer / HiCache / SeaCache)
+#### Model-only (TeaCache / MagCache / TaylorSeer / HiCache / SeaCache)
 
 ```
-[Model Loader] → [AccelDiff Unified] → [KSampler]
+[Model Loader] --model--> [AccelDiff Unified (model_method=XXX)] --model--> [KSampler]
 ```
 
-#### SADA (Sampler + Model combined)
+#### Sampler + Model combined
 
 ```
-[Model Loader] → [AccelDiff Unified] → [KSampler (sampler ← AccelDiff Unified, model ← AccelDiff Unified)]
+[Model Loader] --model--> [AccelDiff Unified (sampler_method=XXX, model_method=YYY)] --sampler--> [KSampler]
+                                                                                      --model--> [KSampler]
 ```
 
 ---
@@ -130,18 +132,18 @@ Each method has its own detailed documentation with full parameter tables, tunin
 
 #### Sampler Methods
 
-- [AdaptiveDiff](docs/adaptivediff.md) — Adaptive step-skipping
-- [EasyCache](docs/easycache.md) — Error-threshold residual caching
-- [SADA](docs/sada.md) — Momentum-based skip + Lagrange interpolation
-- [ZEUS](docs/zeus.md) — Fixed-pattern modular skip + multi-strategy interpolation
+- [AdaptiveDiff](docs/adaptivediff.md) — Third-order latent difference guided step-skipping
+- [EasyCache](docs/easycache.md) — Runtime-adaptive transformation vector caching
+- [SADA](docs/sada.md) — Stability-guided adaptive acceleration with Lagrange interpolation
+- [ZEUS](docs/zeus.md) — Second-order predictor with interleaved skipping
 
 #### Model Methods
 
-- [TeaCache](docs/teacache.md) — Timestep-embedding-aware caching
-- [MagCache](docs/magcache.md) — Magnitude-based layer caching
-- [TaylorSeer](docs/taylorseer.md) — Taylor-expansion prediction
-- [HiCache](docs/hicache.md) — Hierarchical multi-order caching
-- [SeaCache](docs/seacache.md) — Similarity-based exponential adaptive caching
+- [TeaCache](docs/teacache.md) — Timestep-embedding-aware input modulation for caching
+- [MagCache](docs/magcache.md) — Magnitude-law-based adaptive timestep skipping
+- [TaylorSeer](docs/taylorseer.md) — Taylor series expansion feature prediction
+- [HiCache](docs/hicache.md) — Hermite polynomial-based feature cache with dual-scaling
+- [SeaCache](docs/seacache.md) — Spectral-evolution-aware dynamic cache scheduling
 
 ---
 
@@ -203,15 +205,15 @@ This project is licensed under the Apache License 2.0 — see the [LICENSE](LICE
 ## 🙏 Acknowledgments
 
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) — The powerful and modular diffusion UI framework
-- [AdaptiveDiff](https://github.com/InternScience/AdaptiveDiffusion) — Adaptive step-skipping based on output similarity
-- [EasyCache](https://github.com/EasyCacheTeam/EasyCache) — Easy-to-use output caching for diffusion sampling
-- [SADA](https://github.com/SADA-Diffusion/SADA) — Step-adaptive acceleration with momentum-based decision
-- [ZEUS](https://github.com/ZEUS-Diffusion/ZEUS) — Zero-shot efficient unified sparsity for diffusion acceleration
-- [TeaCache](https://github.com/ali-vilab/TeaCache) — Training-free acceleration via timestep embedding aware caching
-- [MagCache](https://github.com/Zehong-Ma/MagCache) — Magnitude-based adaptive caching for diffusion transformers
-- [TaylorSeer](https://github.com/Shenyi-Z/TaylorSeer) — Taylor-expansion based prediction for transformer caching
-- [HiCache](https://github.com/HiCache-Diffusion/HiCache) — Hierarchical caching with multi-order prediction
-- [SeaCache](https://github.com/SeaCache/SeaCache) — Similarity-based exponential adaptive caching
+- [AdaptiveDiff](https://github.com/InternScience/AdaptiveDiffusion) — Third-order latent difference guided adaptive step-skipping
+- [EasyCache](https://github.com/EasyCacheTeam/EasyCache) — Lightweight runtime-adaptive caching for diffusion sampling
+- [SADA](https://github.com/SADA-Diffusion/SADA) — Stability-guided adaptive diffusion acceleration
+- [ZEUS](https://github.com/ZEUS-Diffusion/ZEUS) — Second-order predictor with interleaved skipping scheme
+- [TeaCache](https://github.com/ali-vilab/TeaCache) — Timestep embedding aware cache for training-free acceleration
+- [MagCache](https://github.com/Zehong-Ma/MagCache) — Magnitude-aware cache with single-sample calibration
+- [TaylorSeer](https://github.com/Shenyi-Z/TaylorSeer) — Taylor series expansion for future timestep feature prediction
+- [HiCache](https://github.com/HiCache-Diffusion/HiCache) — Hermite polynomial-based feature cache with dual-scaling
+- [SeaCache](https://github.com/SeaCache/SeaCache) — Spectral-evolution-aware cache for dynamic scheduling
 
 ---
 
