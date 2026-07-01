@@ -94,7 +94,7 @@ class EasyCacheState:
 
 
 class KSAMPLER(Sampler):
-    def __init__(self, model_name, sampler_function, threshold, ret_steps, extra_options={}, inpaint_options={}):
+    def __init__(self, sampler_function, threshold, ret_steps, extra_options={}, inpaint_options={}):
         # parameters for EasyCache
         self.threshold = threshold
         self.ret_steps = ret_steps

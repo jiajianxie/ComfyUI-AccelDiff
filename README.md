@@ -21,17 +21,30 @@ Diffusion model inference is computationally expensive. Many **training-free** a
 
 ### Supported Methods
 
-| Method | Category | Description | Reference |
-|--------|----------|-------------|-----------|
-| **AdaptiveDiff** | Sampler | Adaptively skips denoising steps based on output similarity threshold | [AdaptiveDiff](https://github.com/InternScience/AdaptiveDiffusion) |
-| **EasyCache** | Sampler | Caches denoised-input residual and reuses it when predicted error is below threshold | [EasyCache](https://github.com/H-EmbodVis/EasyCache) |
-| **TeaCache** | Model | Caches transformer block outputs using relative L1 distance to detect redundant computation | [TeaCache](https://github.com/ali-vilab/TeaCache) |
-| **MagCache** | Model | Uses magnitude-based ratios to selectively cache and skip transformer layers | [MagCache](https://github.com/Zehong-Ma/MagCache) |
+#### Sampler-level (step-skipping / output reuse)
+
+| Method | Description | Docs |
+|--------|-------------|------|
+| **AdaptiveDiff** | Adaptive step-skipping based on output similarity | [📄 Details](docs/adaptivediff.md) |
+| **EasyCache** | Cached residual reuse with error threshold | [📄 Details](docs/easycache.md) |
+| **SADA** | Momentum-based adaptive skip + Lagrange interpolation (sampler+model) | [📄 Details](docs/sada.md) |
+| **ZEUS** | Fixed-pattern modular skip + PSI/Lagrange interpolation | [📄 Details](docs/zeus.md) |
+
+#### Model-level (feature caching / layer skipping)
+
+| Method | Description | Docs |
+|--------|-------------|------|
+| **TeaCache** | Timestep-embedding-aware transformer output caching | [📄 Details](docs/teacache.md) |
+| **MagCache** | Magnitude-based adaptive layer caching | [📄 Details](docs/magcache.md) |
+| **TaylorSeer** | Taylor-expansion prediction of transformer outputs | [📄 Details](docs/taylorseer.md) |
+| **HiCache** | Hierarchical caching with multi-order prediction | [📄 Details](docs/hicache.md) |
+| **SeaCache** | Similarity-based exponential adaptive caching | [📄 Details](docs/seacache.md) |
 
 ---
 
 ## 🆕 Updates
 
+- **[2025-06]** Added **SADA**, **ZEUS**, **TaylorSeer**, **HiCache**, and **SeaCache** methods.
 - **[2025-06]** 🎉 Initial release with support for **AdaptiveDiff**, **EasyCache**, **TeaCache**, and **MagCache**.
 
 ---
@@ -82,84 +95,53 @@ The node is located at: **AccelDiff** → `AccelDiff Unified`
 
 ### How It Works
 
-1. **Select an acceleration method** from the `model_name` dropdown.
+1. **Select an acceleration method** from the dropdown.
 2. The node UI **dynamically updates** to show only the relevant parameters and I/O slots:
-   - **Sampler-type methods** (AdaptiveDiff, EasyCache): Output a `SAMPLER` — connect it to your KSampler node's sampler input.
-   - **Model-type methods** (TeaCache, MagCache): Accept a `MODEL` input and output an accelerated `MODEL` — insert it between your model loader and KSampler.
+   - **Sampler-type methods** (AdaptiveDiff, EasyCache, SADA, ZEUS): Output a `SAMPLER` — connect it to your KSampler node's sampler input.
+   - **Model-type methods** (TeaCache, MagCache, TaylorSeer, HiCache, SeaCache): Accept a `MODEL` input and output an accelerated `MODEL` — insert it between your model loader and KSampler.
+   - **SADA** requires both sampler + model to work together (outputs both).
 3. **Configure parameters** according to your quality/speed trade-off preferences.
 
 ### Workflow Examples
 
-#### Sampler-type (AdaptiveDiff / EasyCache)
+#### Sampler-type (AdaptiveDiff / EasyCache / ZEUS)
 
 ```
-[Model Loader] → [KSampler (sampler ← Dynamic Model Sampler)]
+[Model Loader] → [KSampler (sampler ← AccelDiff Unified)]
 ```
 
-#### Model-type (TeaCache / MagCache)
+#### Model-type (TeaCache / MagCache / TaylorSeer / HiCache / SeaCache)
 
 ```
-[Model Loader] → [Dynamic Model Sampler] → [KSampler]
+[Model Loader] → [AccelDiff Unified] → [KSampler]
+```
+
+#### SADA (Sampler + Model combined)
+
+```
+[Model Loader] → [AccelDiff Unified] → [KSampler (sampler ← AccelDiff Unified, model ← AccelDiff Unified)]
 ```
 
 ---
 
 ## 📋 Parameters Reference
 
-### AdaptiveDiff (Sampler)
+Each method has its own detailed documentation with full parameter tables, tuning guides, and citations. Click the links below:
 
-| Parameter | Type | Default | Range | Description |
-|-----------|------|---------|-------|-------------|
-| `sampler_name` | enum | euler | see list below | Base sampler algorithm |
-| `threshold` | float | 0.01 | 0.0 ~ 1.0 | Similarity threshold for skipping steps; lower = higher quality, less acceleration |
-| `max_skip_steps` | int | 3 | 0 ~ 10 | Maximum consecutive steps allowed to skip |
+#### Sampler Methods
 
-### EasyCache (Sampler)
+- [AdaptiveDiff](docs/adaptivediff.md) — Adaptive step-skipping
+- [EasyCache](docs/easycache.md) — Error-threshold residual caching
+- [SADA](docs/sada.md) — Momentum-based skip + Lagrange interpolation
+- [ZEUS](docs/zeus.md) — Fixed-pattern modular skip + multi-strategy interpolation
 
-| Parameter | Type | Default | Range | Description |
-|-----------|------|---------|-------|-------------|
-| `sampler_name` | enum | euler | see list below | Base sampler algorithm |
-| `threshold` | float | 0.025 | 0.0 ~ 1.0 | Accumulated error threshold; lower = higher quality |
-| `ret_steps` | int | 5 | 0 ~ 100 | Number of initial steps forced to compute (warmup protection) |
+#### Model Methods
 
-### TeaCache (Model)
-
-| Parameter | Type | Default | Range | Description |
-|-----------|------|---------|-------|-------------|
-| `model` | MODEL | - | - | Input diffusion model (required) |
-| `teacache_model_type` | enum | wan2.1_t2v_1.3B_ret_mode | see list below | Target model architecture type |
-| `rel_l1_thresh` | float | 0.4 | 0.0 ~ 10.0 | Relative L1 threshold for caching decision; higher = more aggressive caching |
-| `start_percent` | float | 0.0 | 0.0 ~ 1.0 | Start applying TeaCache from this percentage of total steps |
-| `end_percent` | float | 1.0 | 0.0 ~ 1.0 | Stop applying TeaCache at this percentage of total steps |
-| `cache_device` | enum | cuda | cuda, cpu | Device to store cached features |
-
-### MagCache (Model)
-
-| Parameter | Type | Default | Range | Description |
-|-----------|------|---------|-------|-------------|
-| `model` | MODEL | - | - | Input diffusion model (required) |
-| `magcache_model_type` | enum | wan2.1_t2v_1.3B | see list below | Target model architecture type |
-| `magcache_thresh` | float | 0.06 | 0.0 ~ 0.3 | Magnitude threshold for cache hit; higher = more skipping |
-| `retention_ratio` | float | 0.2 | 0.1 ~ 0.3 | Ratio of layers retained during caching |
-| `magcache_K` | int | 2 | 0 ~ 6 | Number of steps to cache before re-computation |
-| `start_step` | int | 0 | 0 ~ 100 | Step index to start applying MagCache |
-| `end_step` | int | -1 | -100 ~ 100 | Step index to stop applying MagCache (-1 = last step) |
-
----
-
-## 📝 Supported Configurations
-
-### Supported Samplers (for Sampler-type methods)
-
-`euler`, `heun`, `heunpp2`, `dpm_2`, `lms`, `dpm_fast`, `dpm_adaptive`, `dpmpp_2m`, `ipndm`, `ipndm_v`, `deis`, `res_multistep`, `gradient_estimation`, `ddim`, `euler_ancestral`, `dpm_2_ancestral`
-
-### Supported Model Types — TeaCache
-
-`flux`, `flux-kontext`, `ltxv`, `lumina_2`, `hunyuan_video`, `hidream_i1_full`, `hidream_i1_dev`, `hidream_i1_fast`, `wan2.1_t2v_1.3B`, `wan2.1_t2v_14B`, `wan2.1_i2v_480p_14B`, `wan2.1_i2v_720p_14B`, `wan2.1_t2v_1.3B_ret_mode`, `wan2.1_t2v_14B_ret_mode`, `wan2.1_i2v_480p_14B_ret_mode`, `wan2.1_i2v_720p_14B_ret_mode`
-
-### Supported Model Types — MagCache
-
-`flux`, `flux_kontext`, `chroma`, `qwen_image`, `hunyuan_video`, `hunyuan_video1.5`, `wan2.1_t2v_1.3B`, `wan2.1_t2v_14B`, `wan2.1_i2v_480p_14B`, `wan2.1_i2v_720p_14B`, `wan2.1_vace_1.3B`, `wan2.1_vace_14B`
+- [TeaCache](docs/teacache.md) — Timestep-embedding-aware caching
+- [MagCache](docs/magcache.md) — Magnitude-based layer caching
+- [TaylorSeer](docs/taylorseer.md) — Taylor-expansion prediction
+- [HiCache](docs/hicache.md) — Hierarchical multi-order caching
+- [SeaCache](docs/seacache.md) — Similarity-based exponential adaptive caching
 
 ---
 
@@ -174,14 +156,24 @@ ComfyUI-AccelDiff/
 ├── sampler/
 │   ├── adaptivediff.py      # AdaptiveDiff sampler implementation
 │   ├── easycache.py         # EasyCache sampler implementation
-│   └── other.py             # Reserved for future sampler methods
+│   ├── sada.py              # SADA sampler implementation
+│   └── zeus.py              # ZEUS sampler implementation
 ├── model/
 │   ├── teacache/            # TeaCache model-level acceleration
-│   │   ├── nodes.py
-│   │   └── models/          # Model-specific TeaCache implementations
-│   └── magcache/            # MagCache model-level acceleration
-│       ├── nodes.py
-│       └── nodes_calibration.py
+│   ├── magcache/            # MagCache model-level acceleration
+│   ├── taylorseer/          # TaylorSeer model-level acceleration
+│   ├── hicache/             # HiCache model-level acceleration
+│   └── seacache/            # SeaCache model-level acceleration
+├── docs/                    # Per-method detailed documentation
+│   ├── adaptivediff.md
+│   ├── easycache.md
+│   ├── sada.md
+│   ├── zeus.md
+│   ├── teacache.md
+│   ├── magcache.md
+│   ├── taylorseer.md
+│   ├── hicache.md
+│   └── seacache.md
 ├── requirements.txt
 ├── LICENSE
 └── README.md
@@ -211,9 +203,15 @@ This project is licensed under the Apache License 2.0 — see the [LICENSE](LICE
 ## 🙏 Acknowledgments
 
 - [ComfyUI](https://github.com/comfyanonymous/ComfyUI) — The powerful and modular diffusion UI framework
-- [TeaCache](https://github.com/ali-vilab/TeaCache) — Training-free acceleration via timestep embedding aware caching
-- [MagCache](https://github.com/MagCache/MagCache) — Magnitude-based adaptive caching for diffusion transformers
+- [AdaptiveDiff](https://github.com/InternScience/AdaptiveDiffusion) — Adaptive step-skipping based on output similarity
 - [EasyCache](https://github.com/EasyCacheTeam/EasyCache) — Easy-to-use output caching for diffusion sampling
+- [SADA](https://github.com/SADA-Diffusion/SADA) — Step-adaptive acceleration with momentum-based decision
+- [ZEUS](https://github.com/ZEUS-Diffusion/ZEUS) — Zero-shot efficient unified sparsity for diffusion acceleration
+- [TeaCache](https://github.com/ali-vilab/TeaCache) — Training-free acceleration via timestep embedding aware caching
+- [MagCache](https://github.com/Zehong-Ma/MagCache) — Magnitude-based adaptive caching for diffusion transformers
+- [TaylorSeer](https://github.com/Shenyi-Z/TaylorSeer) — Taylor-expansion based prediction for transformer caching
+- [HiCache](https://github.com/HiCache-Diffusion/HiCache) — Hierarchical caching with multi-order prediction
+- [SeaCache](https://github.com/SeaCache/SeaCache) — Similarity-based exponential adaptive caching
 
 ---
 

@@ -17,7 +17,7 @@ import comfy.model_sampling
 from comfy.samplers import KSamplerX0Inpaint,Sampler
 
 class KSAMPLER(Sampler):
-    def __init__(self, model_name, sampler_function, max_skip_steps, threshold, extra_options={}, inpaint_options={}):
+    def __init__(self, sampler_function, max_skip_steps, threshold, extra_options={}, inpaint_options={}):
         #parameters for AdaptiveDiff
         self.max_skip_steps = max_skip_steps
         self.threshold = threshold
