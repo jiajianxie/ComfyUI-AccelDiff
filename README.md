@@ -1,6 +1,6 @@
 # ComfyUI-AccelDiff
 
-A unified ComfyUI custom node for **training-free diffusion acceleration**. This node integrates multiple acceleration methods — including both **sampler-level** (model output reuse/approximation) and **model-level** (attention/layer feature caching) approaches — into a single, easy-to-use node. Users can select different acceleration strategies without needing a separate node for each method.
+A unified ComfyUI custom node for **training-free diffusion acceleration**. This node integrates multiple acceleration methods — including both **sampler-level** (model output reuse/approximation) and **model-level** (attention/layer feature caching) approaches — into a single, easy-to-use node. Users can enable either layer independently or stack sampler-level and model-level methods in the same workflow.
 
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-Custom_Node-blue)
 ![License](https://img.shields.io/badge/License-Apache_2.0-green)
@@ -19,7 +19,8 @@ Diffusion model inference is computationally expensive. Many **training-free** a
 - **Model-level methods**: Cache and reuse intermediate features (e.g., attention maps, transformer block outputs) inside the model architecture to reduce per-step computation.
 
 **ComfyUI-AccelDiff** unifies these methods into **one single node** (`AccelDiff Unified`), allowing users to:
-- Select an acceleration method from a dropdown
+- Select sampler-level and model-level acceleration methods independently
+- Use either layer alone, or enable both together for combined acceleration
 - Customize parameters to achieve better speed-quality trade-offs for your specific use case
 - Seamlessly integrate acceleration into existing ComfyUI workflows
 
