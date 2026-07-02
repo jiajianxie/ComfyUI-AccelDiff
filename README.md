@@ -5,6 +5,10 @@ A unified ComfyUI custom node for **training-free diffusion acceleration**. This
 ![ComfyUI](https://img.shields.io/badge/ComfyUI-Custom_Node-blue)
 ![License](https://img.shields.io/badge/License-Apache_2.0-green)
 
+![ComfyUI-AccelDiff promotional overview](docs/ComfyUI-AccelDiff_Promo_EN.png)
+
+[Download the English promotional slide deck](docs/ComfyUI-AccelDiff_Promo_EN.pptx)
+
 ---
 
 ## 📖 Introduction
