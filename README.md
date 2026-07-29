@@ -44,12 +44,13 @@ Diffusion model inference is computationally expensive. Many **training-free** a
 | **TaylorSeer** | Taylor series expansion for predicting future timestep features | [📄 Details](docs/taylorseer.md) |
 | **HiCache** | Hermite polynomial-based feature cache with dual-scaling mechanism | [📄 Details](docs/hicache.md) |
 | **SeaCache** | Spectral-evolution-aware cache with SEA filter for dynamic scheduling | [📄 Details](docs/seacache.md) |
+| **TC-Pade** | Trajectory-consistent Pade residual prediction for model feature acceleration | [📄 Details](docs/tcpade.md) |
 
 ---
 
 ## 🆕 Updates
 
-- **[2025-06]** Added **SADA**, **ZEUS**, **TaylorSeer**, **HiCache**, and **SeaCache** methods.
+- **[2025-06]** Added **SADA**, **ZEUS**, **TaylorSeer**, **HiCache**, **SeaCache**, and **TC-Pade** methods.
 - **[2025-06]** 🎉 Initial release with support for **AdaptiveDiff**, **EasyCache**, **TeaCache**, and **MagCache**.
 
 ---
@@ -103,7 +104,7 @@ The node is located at: **AccelDiff** → `AccelDiff Unified`
 1. **Select acceleration methods** from the `sampler_method` and `model_method` dropdowns (can be used independently or together).
 2. The node UI **dynamically updates** to show only the relevant parameters and I/O slots:
    - **Sampler-type methods** (AdaptiveDiff, EasyCache, SADA, ZEUS): Output a `SAMPLER` — connect it to your KSampler node's sampler input.
-   - **Model-type methods** (TeaCache, MagCache, TaylorSeer, HiCache, SeaCache): Accept a `MODEL` input and output an accelerated `MODEL` — insert it between your model loader and KSampler.
+   - **Model-type methods** (TeaCache, MagCache, TaylorSeer, HiCache, SeaCache, TC-Pade): Accept a `MODEL` input and output an accelerated `MODEL` — insert it between your model loader and KSampler.
    - When set to "None", the corresponding output slot is hidden automatically.
    - Both methods can be enabled simultaneously for combined acceleration.
 3. **Configure parameters** according to your quality/speed trade-off preferences.
@@ -116,7 +117,7 @@ The node is located at: **AccelDiff** → `AccelDiff Unified`
 [AccelDiff Unified (sampler_method=XXX)] --sampler--> [KSampler]
 ```
 
-#### Model-only (TeaCache / MagCache / TaylorSeer / HiCache / SeaCache)
+#### Model-only (TeaCache / MagCache / TaylorSeer / HiCache / SeaCache / TC-Pade)
 
 ```
 [Model Loader] --model--> [AccelDiff Unified (model_method=XXX)] --model--> [KSampler]
@@ -149,6 +150,7 @@ Each method has its own detailed documentation with full parameter tables, tunin
 - [TaylorSeer](docs/taylorseer.md) — Taylor series expansion feature prediction
 - [HiCache](docs/hicache.md) — Hermite polynomial-based feature cache with dual-scaling
 - [SeaCache](docs/seacache.md) — Spectral-evolution-aware dynamic cache scheduling
+- [TC-Pade](docs/tcpade.md) — Trajectory-consistent Pade residual prediction
 
 ---
 
@@ -170,7 +172,8 @@ ComfyUI-AccelDiff/
 │   ├── magcache/            # MagCache model-level acceleration
 │   ├── taylorseer/          # TaylorSeer model-level acceleration
 │   ├── hicache/             # HiCache model-level acceleration
-│   └── seacache/            # SeaCache model-level acceleration
+│   ├── seacache/            # SeaCache model-level acceleration
+│   └── tcpade/              # TC-Pade model-level acceleration
 ├── docs/                    # Per-method detailed documentation
 │   ├── adaptivediff.md
 │   ├── easycache.md
@@ -180,7 +183,8 @@ ComfyUI-AccelDiff/
 │   ├── magcache.md
 │   ├── taylorseer.md
 │   ├── hicache.md
-│   └── seacache.md
+│   ├── seacache.md
+│   └── tcpade.md
 ├── requirements.txt
 ├── LICENSE
 └── README.md
@@ -219,6 +223,7 @@ This project is licensed under the Apache License 2.0 — see the [LICENSE](LICE
 - [TaylorSeer](https://github.com/Shenyi-Z/TaylorSeer) — Taylor series expansion for future timestep feature prediction
 - [HiCache](https://github.com/HiCache-Diffusion/HiCache) — Hermite polynomial-based feature cache with dual-scaling
 - [SeaCache](https://github.com/SeaCache/SeaCache) — Spectral-evolution-aware cache for dynamic scheduling
+- [TC-Pade](https://github.com/Alibaba-VELLDEPTH/TC_Pade) — Trajectory-consistent Pade residual prediction
 
 ---
 

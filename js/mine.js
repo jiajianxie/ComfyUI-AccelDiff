@@ -17,6 +17,7 @@ const MODEL_METHOD_CONFIG = {
     "TaylorSeer": { params: ["taylorseer_model_type", "max_order", "fresh_threshold", "first_enhance"] },
     "HiCache": { params: ["hicache_model_type", "hicache_prediction_mode", "hicache_max_order", "hicache_fresh_threshold", "hicache_first_enhance", "hicache_scale_factor"] },
     "SeaCache": { params: ["seacache_model_type", "seacache_thresh", "seacache_power_exp", "seacache_ret_steps"] },
+    "TC-Pade": { params: ["tcpade_model_type", "tcpade_start_step", "tcpade_end_step", "tcpade_interval", "tcpade_n_threshold", "tcpade_predictor_order", "tcpade_history_size", "tcpade_cache_device"] },
 };
 
 // SADA 已改为纯 sampler 方法，不再有 model 侧参数
@@ -54,6 +55,7 @@ const ALL_PARAM_WIDGETS = [
     "taylorseer_model_type", "max_order", "fresh_threshold", "first_enhance",
     "hicache_model_type", "hicache_prediction_mode", "hicache_max_order", "hicache_fresh_threshold", "hicache_first_enhance", "hicache_scale_factor",
     "seacache_model_type", "seacache_thresh", "seacache_power_exp", "seacache_ret_steps",
+    "tcpade_model_type", "tcpade_start_step", "tcpade_end_step", "tcpade_interval", "tcpade_n_threshold", "tcpade_predictor_order", "tcpade_history_size", "tcpade_cache_device",
     "zeus_denominator", "zeus_modular", "zeus_acc_start", "zeus_acc_end", "zeus_interp_mode", "zeus_caching_mode", "zeus_max_interval", "zeus_lagrange_term", "zeus_lagrange_int", "zeus_lagrange_step",
 ];
 

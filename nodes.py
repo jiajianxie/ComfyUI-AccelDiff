@@ -37,6 +37,8 @@ HICACHE_PREDICTION_MODES = ["hicache", "taylor_scaled"]
 
 SEACACHE_MODEL_TYPES = ["flux", "hunyuan_video", "wan2.1"]
 
+TCPADE_MODEL_TYPES = ["flux", "wan2.1"]
+
 # ========== sampler_method 可选项 ==========
 SAMPLER_METHOD_LIST = ["None", "AdaptiveDiff", "EasyCache", "SADA", "ZEUS"]
 
@@ -44,7 +46,7 @@ ZEUS_INTERP_MODES = ["psi", "x_0"]
 ZEUS_CACHING_MODES = ["reuse_interp", "interp_all", "reuse_all"]
 
 # ========== model_method (model-feature) 可选项 ==========
-MODEL_METHOD_LIST = ["None", "TeaCache", "MagCache", "TaylorSeer", "HiCache", "SeaCache"]
+MODEL_METHOD_LIST = ["None", "TeaCache", "MagCache", "TaylorSeer", "HiCache", "SeaCache", "TC-Pade"]
 
 
 def _apply_teacache(model, model_type, rel_l1_thresh, start_percent, end_percent, cache_device):
@@ -70,6 +72,15 @@ def _apply_hicache(model, model_type, max_order, fresh_threshold, first_enhance,
 def _apply_seacache(model, model_type, seacache_thresh, power_exp, ret_steps):
     from .model.seacache.nodes import apply_seacache
     return apply_seacache(model, model_type, seacache_thresh, power_exp, ret_steps)
+
+
+def _apply_tcpade(model, model_type, start_step, end_step, interval, n_threshold,
+                  predictor_order, history_size, cache_device):
+    from .model.tcpade.nodes import apply_tcpade
+    return apply_tcpade(
+        model, model_type, start_step, end_step, interval, n_threshold,
+        predictor_order, history_size, cache_device,
+    )
 
 
 def _apply_magcache(model, model_type, magcache_thresh, retention_ratio, magcache_K, start_step, end_step):
@@ -147,6 +158,15 @@ class DynamicModelParamsNode:
                 "seacache_thresh": ("FLOAT", {"default": 0.3, "min": 0.0, "max": 2.0, "step": 0.01}),
                 "seacache_power_exp": ("FLOAT", {"default": 2.0, "min": 1.0, "max": 5.0, "step": 0.5}),
                 "seacache_ret_steps": ("INT", {"default": 1, "min": 0, "max": 10, "step": 1}),
+                # === TC-Pade model 参数 ===
+                "tcpade_model_type": (TCPADE_MODEL_TYPES, {"default": "wan2.1"}),
+                "tcpade_start_step": ("INT", {"default": 4, "min": 0, "max": 100, "step": 1}),
+                "tcpade_end_step": ("INT", {"default": -1, "min": -1, "max": 200, "step": 1}),
+                "tcpade_interval": ("INT", {"default": 8, "min": 1, "max": 100, "step": 1}),
+                "tcpade_n_threshold": ("FLOAT", {"default": 1.4, "min": 0.0, "max": 5.0, "step": 0.1}),
+                "tcpade_predictor_order": ("INT", {"default": 3, "min": 1, "max": 4, "step": 1}),
+                "tcpade_history_size": ("INT", {"default": 6, "min": 3, "max": 12, "step": 1}),
+                "tcpade_cache_device": (["cuda", "cpu"], {"default": "cuda"}),
                 # === ZEUS sampler 参数 (默认值来自 flux_demo.py) ===
                 "zeus_denominator": ("INT", {"default": 3, "min": 2, "max": 6, "step": 1}),
                 "zeus_modular": ("STRING", {"default": "0,1"}),
@@ -227,6 +247,15 @@ class DynamicModelParamsNode:
                     seacache_thresh=0.3,
                     seacache_power_exp=2.0,
                     seacache_ret_steps=1,
+                    # --- TC-Pade model 参数 ---
+                    tcpade_model_type="wan2.1",
+                    tcpade_start_step=4,
+                    tcpade_end_step=-1,
+                    tcpade_interval=8,
+                    tcpade_n_threshold=1.4,
+                    tcpade_predictor_order=3,
+                    tcpade_history_size=6,
+                    tcpade_cache_device="cuda",
                     **kwargs):
 
         out_sampler = None
@@ -347,6 +376,13 @@ class DynamicModelParamsNode:
                 out_model = _apply_seacache(
                     model, seacache_model_type, seacache_thresh,
                     seacache_power_exp, seacache_ret_steps,
+                )
+            elif model_method == "TC-Pade":
+                out_model = _apply_tcpade(
+                    model, tcpade_model_type, tcpade_start_step,
+                    tcpade_end_step, tcpade_interval, tcpade_n_threshold,
+                    tcpade_predictor_order, tcpade_history_size,
+                    tcpade_cache_device,
                 )
             else:
                 out_model = model
